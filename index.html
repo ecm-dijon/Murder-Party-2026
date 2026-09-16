@@ -192,6 +192,12 @@
     transition: stroke-dashoffset 1s linear;
   }
 
+  #lockButton {
+    background: transparent;
+    text-transform: lowercase;
+  }
+  #lockButton:hover { background: #2f2721; }
+
   @media (max-width: 480px) {
     h1 { font-size: 27px; }
     .display { font-size: 20px; letter-spacing: 2px; }
@@ -270,10 +276,13 @@
     <img id="revealImage" src="" alt="Pièce à conviction">
     <div class="frame-caption">
       <span id="revealLabel">Preuve confidentielle</span>
-      <svg class="timer-ring" viewBox="0 0 40 40">
-        <circle class="track" cx="20" cy="20" r="16"></circle>
-        <circle class="progress" id="timerProgress" cx="20" cy="20" r="16"></circle>
-      </svg>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button id="lockButton" class="key validate" style="padding:6px 14px; font-size:11px;">verrouiller</button>
+        <svg class="timer-ring" viewBox="0 0 40 40">
+          <circle class="track" cx="20" cy="20" r="16"></circle>
+          <circle class="progress" id="timerProgress" cx="20" cy="20" r="16"></circle>
+        </svg>
+      </div>
     </div>
   </div>
 </div>
@@ -301,6 +310,23 @@
 
   const REVEAL_DURATION = 20; // secondes avant fermeture automatique
   const MAX_LENGTH = Math.max(...CODES.map(c => c.code.length), 6) + 4;
+  const STORAGE_KEY = "mp2026_used_codes";
+
+  let usedCodes = new Set();
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    usedCodes = new Set(saved);
+  } catch (e) {
+    usedCodes = new Set();
+  }
+
+  function persistUsedCodes() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(usedCodes)));
+    } catch (e) { /* stockage indisponible, tant pis */ }
+  }
+
+  let currentMatch = null;
 
   let buffer = "";
   let timerInterval = null;
@@ -330,13 +356,25 @@
     }, 420);
   }
 
+  function showAlreadyUsed() {
+    display.textContent = "PREUVE DÉJÀ CONSULTÉE";
+    setTimeout(() => {
+      buffer = "";
+      renderDisplay();
+    }, 1400);
+  }
+
   function tryUnlock() {
     const match = CODES.find(c => c.code === buffer);
-    if (match) {
-      openReveal(match);
-    } else {
+    if (!match) {
       shakeError();
+      return;
     }
+    if (usedCodes.has(match.code)) {
+      showAlreadyUsed();
+      return;
+    }
+    openReveal(match);
   }
 
   function addChar(ch) {
@@ -372,7 +410,10 @@
     if (e.key === "Enter") tryUnlock();
   });
 
+  document.getElementById("lockButton").addEventListener("click", closeReveal);
+
   function openReveal(match) {
+    currentMatch = match;
     revealImage.src = match.image;
     revealLabel.textContent = match.label || "Preuve confidentielle";
     overlay.classList.add("show");
@@ -395,6 +436,11 @@
     clearInterval(timerInterval);
     overlay.classList.remove("show");
     revealImage.src = "";
+    if (currentMatch) {
+      usedCodes.add(currentMatch.code);
+      persistUsedCodes();
+      currentMatch = null;
+    }
     buffer = "";
     renderDisplay();
   }
