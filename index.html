@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dossier confidentiel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #14100e;
+    --bg-2: #1c1613;
+    --card: #211a16;
+    --parchment: #e8ddc0;
+    --oxblood: #7c2530;
+    --oxblood-bright: #a53341;
+    --gold: #b3873f;
+    --text: #ece3d2;
+    --text-dim: #a89a86;
+    --line: #3a2f28;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    background: radial-gradient(ellipse at 50% 20%, var(--bg-2), var(--bg) 70%);
+    color: var(--text);
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .scene { width: 100%; max-width: 480px; }
+
+  .eyebrow {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 15px;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+
+  h1 {
+    text-align: center;
+    font-weight: 600;
+    font-size: 34px;
+    margin: 0 0 26px;
+    color: var(--parchment);
+  }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 26px 22px 24px;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6);
+    position: relative;
+  }
+
+  .panel::before {
+    content: "";
+    position: absolute;
+    top: 10px; left: 10px; right: 10px; bottom: 10px;
+    border: 1px solid rgba(179,135,63,0.25);
+    border-radius: 3px;
+    pointer-events: none;
+  }
+
+  .display {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 26px;
+    letter-spacing: 4px;
+    text-align: center;
+    background: #0e0b09;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 16px 10px;
+    margin-bottom: 18px;
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gold);
+    word-break: break-all;
+  }
+
+  .display.error { animation: shake 0.4s; color: var(--oxblood-bright); }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-6px); }
+    80% { transform: translateX(6px); }
+  }
+
+  .keyboard { display: flex; flex-direction: column; gap: 7px; }
+  .krow { display: flex; gap: 7px; justify-content: center; }
+
+  .key {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    background: #262019;
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    flex: 1;
+    min-width: 0;
+    padding: 12px 0;
+  }
+
+  .key:hover { background: #2f2721; border-color: var(--gold); }
+  .key:active { background: #382e26; }
+
+  .key.dash { color: var(--gold); }
+  .key.wide { flex: 1.7; font-size: 12px; letter-spacing: 0.03em; color: var(--text-dim); }
+  .key.validate { flex: 1.7; color: var(--gold); border-color: rgba(179,135,63,0.4); }
+
+  .actions { display: flex; gap: 7px; margin-top: 3px; }
+
+  .hint {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-top: 16px;
+    letter-spacing: 0.02em;
+  }
+
+  /* --- Reveal overlay --- */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(6,4,3,0.94);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    padding: 24px;
+  }
+
+  .overlay.show { display: flex; }
+
+  .frame {
+    max-width: 90vw;
+    max-height: 78vh;
+    background: #0b0908;
+    border: 1px solid var(--line);
+    padding: 14px;
+    border-radius: 4px;
+    box-shadow: 0 40px 80px -20px rgba(0,0,0,0.7);
+    position: relative;
+  }
+
+  .frame img {
+    display: block;
+    max-width: 100%;
+    max-height: 65vh;
+    border-radius: 2px;
+  }
+
+  .frame-caption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 0.03em;
+  }
+
+  .timer-ring { width: 34px; height: 34px; flex-shrink: 0; }
+  .timer-ring circle { fill: none; stroke-width: 3; }
+  .timer-ring .track { stroke: var(--line); }
+  .timer-ring .progress {
+    stroke: var(--oxblood-bright);
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+    transition: stroke-dashoffset 1s linear;
+  }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 27px; }
+    .display { font-size: 20px; letter-spacing: 2px; }
+    .key { font-size: 12px; padding: 10px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="scene">
+  <p class="eyebrow">Enquête en cours</p>
+  <h1>Dossier verrouillé</h1>
+
+  <div class="panel">
+    <div class="display" id="display">— · — · — · —</div>
+
+    <div class="keyboard" id="keyboard">
+      <div class="krow">
+        <button class="key" data-char="1">1</button>
+        <button class="key" data-char="2">2</button>
+        <button class="key" data-char="3">3</button>
+        <button class="key" data-char="4">4</button>
+        <button class="key" data-char="5">5</button>
+        <button class="key" data-char="6">6</button>
+        <button class="key" data-char="7">7</button>
+        <button class="key" data-char="8">8</button>
+        <button class="key" data-char="9">9</button>
+        <button class="key" data-char="0">0</button>
+        <button class="key dash" data-char="-">–</button>
+      </div>
+      <div class="krow">
+        <button class="key" data-char="A">A</button>
+        <button class="key" data-char="Z">Z</button>
+        <button class="key" data-char="E">E</button>
+        <button class="key" data-char="R">R</button>
+        <button class="key" data-char="T">T</button>
+        <button class="key" data-char="Y">Y</button>
+        <button class="key" data-char="U">U</button>
+        <button class="key" data-char="I">I</button>
+        <button class="key" data-char="O">O</button>
+        <button class="key" data-char="P">P</button>
+      </div>
+      <div class="krow">
+        <button class="key" data-char="Q">Q</button>
+        <button class="key" data-char="S">S</button>
+        <button class="key" data-char="D">D</button>
+        <button class="key" data-char="F">F</button>
+        <button class="key" data-char="G">G</button>
+        <button class="key" data-char="H">H</button>
+        <button class="key" data-char="J">J</button>
+        <button class="key" data-char="K">K</button>
+        <button class="key" data-char="L">L</button>
+        <button class="key" data-char="M">M</button>
+      </div>
+      <div class="krow">
+        <button class="key" data-char="W">W</button>
+        <button class="key" data-char="X">X</button>
+        <button class="key" data-char="C">C</button>
+        <button class="key" data-char="V">V</button>
+        <button class="key" data-char="B">B</button>
+        <button class="key" data-char="N">N</button>
+      </div>
+      <div class="actions">
+        <button class="key wide" id="clear">effacer tout</button>
+        <button class="key wide" id="backspace">⌫</button>
+        <button class="key validate" id="validate">valider</button>
+      </div>
+    </div>
+
+    <p class="hint">Entrez le code retrouvé pour accéder à la pièce à conviction.</p>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="frame">
+    <img id="revealImage" src="" alt="Pièce à conviction">
+    <div class="frame-caption">
+      <span id="revealLabel">Preuve confidentielle</span>
+      <svg class="timer-ring" viewBox="0 0 40 40">
+        <circle class="track" cx="20" cy="20" r="16"></circle>
+        <circle class="progress" id="timerProgress" cx="20" cy="20" r="16"></circle>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURATION — à personnaliser
+   Ajoutez une entrée par code / capture d'écran.
+   "code"  : le code à taper — chiffres, lettres (majuscules) et
+             tirets sont autorisés, ex: "AX-4172"
+   "image" : chemin vers l'image (place tes fichiers dans un
+             dossier "images" à côté de ce fichier index.html)
+   "label" : texte affiché sous la photo
+   ============================================================ */
+const CODES = [
+  { code: "AX-4172", image: "images/preuve-1.jpg", label: "Preuve n°1 — carnet de bord" },
+  { code: "18-BORD", image: "images/preuve-2.jpg", label: "Preuve n°2 — message effacé" },
+  // Ajoutez d'autres { code, image, label } ici
+];
+
+const REVEAL_DURATION = 30; // secondes avant fermeture automatique
+const MAX_LENGTH = Math.max(...CODES.map(c => c.code.length), 6) + 4;
+
+let buffer = "";
+let timerInterval = null;
+
+const display = document.getElementById("display");
+const overlay = document.getElementById("overlay");
+const revealImage = document.getElementById("revealImage");
+const revealLabel = document.getElementById("revealLabel");
+const timerProgress = document.getElementById("timerProgress");
+
+const RADIUS = 16;
+const CIRC = 2 * Math.PI * RADIUS;
+timerProgress.style.strokeDasharray = CIRC;
+
+function renderDisplay() {
+  display.textContent = buffer.length === 0
+    ? "— · — · — · —"
+    : buffer.split("").join(" ");
+}
+
+function shakeError() {
+  display.classList.add("error");
+  setTimeout(() => {
+    display.classList.remove("error");
+    buffer = "";
+    renderDisplay();
+  }, 420);
+}
+
+function tryUnlock() {
+  const match = CODES.find(c => c.code === buffer);
+  if (match) {
+    openReveal(match);
+  } else {
+    shakeError();
+  }
+}
+
+function addChar(ch) {
+  if (buffer.length >= MAX_LENGTH) return;
+  buffer += ch;
+  renderDisplay();
+}
+
+document.getElementById("keyboard").addEventListener("click", (e) => {
+  const btn = e.target.closest("button.key");
+  if (!btn || btn.dataset.char === undefined) return;
+  addChar(btn.dataset.char);
+});
+
+document.getElementById("clear").addEventListener("click", () => {
+  buffer = "";
+  renderDisplay();
+});
+
+document.getElementById("backspace").addEventListener("click", () => {
+  buffer = buffer.slice(0, -1);
+  renderDisplay();
+});
+
+document.getElementById("validate").addEventListener("click", tryUnlock);
+
+document.addEventListener("keydown", (e) => {
+  if (overlay.classList.contains("show")) return;
+  const k = e.key.toUpperCase();
+  if (/^[A-Z0-9]$/.test(k)) addChar(k);
+  if (e.key === "-") addChar("-");
+  if (e.key === "Backspace") { buffer = buffer.slice(0, -1); renderDisplay(); }
+  if (e.key === "Enter") tryUnlock();
+});
+
+function openReveal(match) {
+  revealImage.src = match.image;
+  revealLabel.textContent = match.label || "Preuve confidentielle";
+  overlay.classList.add("show");
+
+  let remaining = REVEAL_DURATION;
+  timerProgress.style.strokeDashoffset = 0;
+
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    remaining -= 1;
+    const ratio = Math.max(remaining, 0) / REVEAL_DURATION;
+    timerProgress.style.strokeDashoffset = CIRC * (1 - ratio);
+    if (remaining <= 0) {
+      closeReveal();
+    }
+  }, 1000);
+}
+
+function closeReveal() {
+  clearInterval(timerInterval);
+  overlay.classList.remove("show");
+  buffer = "";
+  renderDisplay();
+}
+
+renderDisplay();
+</script>
+</body>
+</html>
