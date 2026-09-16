@@ -278,121 +278,128 @@
 </div>
 
 <script>
-/* ============================================================
-   CONFIGURATION — à personnaliser
-   Ajoutez une entrée par code / capture d'écran.
-   "code"  : le code à taper — chiffres, lettres (majuscules) et
-             tirets sont autorisés, ex: "AX-4172"
-   "image" : chemin vers l'image (place tes fichiers dans un
-             dossier "images" à côté de ce fichier index.html)
-   "label" : texte affiché sous la photo
-   ============================================================ */
-const CODES = [
-  { code: "AX-4172", image: "images/preuve-1.jpg", label: "Preuve n°1 — carnet de bord" },
-  { code: "18-BORD", image: "images/preuve-2.jpg", label: "Preuve n°2 — message effacé" },
-  // Ajoutez d'autres { code, image, label } ici
-];
+(function () {
+  "use strict";
 
-const REVEAL_DURATION = 30; // secondes avant fermeture automatique
-const MAX_LENGTH = Math.max(...CODES.map(c => c.code.length), 6) + 4;
+  /* ============================================================
+     CONFIGURATION — codée en base64 pour ne pas apparaître en clair
+     dans le code source (affichage console / Ctrl+U). Ce n'est pas
+     un vrai chiffrement : voir la note de sécurité fournie à part.
+     Pour ajouter une preuve : décodez cette chaîne (atob), ajoutez
+     votre { code, image, label } au tableau JSON, ré-encodez en
+     base64 (btoa) et remplacez la chaîne ci-dessous.
+     ============================================================ */
+  const _CFG = "W3siY29kZSI6ICJFQ00tQUxULTExNDciLCAiaW1hZ2UiOiAiaW1hZ2VzL2V2LWIxZDVmMGZjOTgucG5nIiwgImxhYmVsIjogIlBpw6hjZSDDoCBjb252aWN0aW9uIOKAlCBlLW1haWwgaW50ZXJuZSAoZG9zc2llciBFQ00tQUxULTExNDcpIn1d";
 
-let buffer = "";
-let timerInterval = null;
+  let CODES = [];
+  try {
+    CODES = JSON.parse(decodeURIComponent(escape(atob(_CFG))));
+  } catch (e) {
+    CODES = [];
+  }
 
-const display = document.getElementById("display");
-const overlay = document.getElementById("overlay");
-const revealImage = document.getElementById("revealImage");
-const revealLabel = document.getElementById("revealLabel");
-const timerProgress = document.getElementById("timerProgress");
+  const REVEAL_DURATION = 30; // secondes avant fermeture automatique
+  const MAX_LENGTH = Math.max(...CODES.map(c => c.code.length), 6) + 4;
 
-const RADIUS = 16;
-const CIRC = 2 * Math.PI * RADIUS;
-timerProgress.style.strokeDasharray = CIRC;
+  let buffer = "";
+  let timerInterval = null;
 
-function renderDisplay() {
-  display.textContent = buffer.length === 0
-    ? "— · — · — · —"
-    : buffer.split("").join(" ");
-}
+  const display = document.getElementById("display");
+  const overlay = document.getElementById("overlay");
+  const revealImage = document.getElementById("revealImage");
+  const revealLabel = document.getElementById("revealLabel");
+  const timerProgress = document.getElementById("timerProgress");
 
-function shakeError() {
-  display.classList.add("error");
-  setTimeout(() => {
-    display.classList.remove("error");
+  const RADIUS = 16;
+  const CIRC = 2 * Math.PI * RADIUS;
+  timerProgress.style.strokeDasharray = CIRC;
+
+  function renderDisplay() {
+    display.textContent = buffer.length === 0
+      ? "— · — · — · —"
+      : buffer.split("").join(" ");
+  }
+
+  function shakeError() {
+    display.classList.add("error");
+    setTimeout(() => {
+      display.classList.remove("error");
+      buffer = "";
+      renderDisplay();
+    }, 420);
+  }
+
+  function tryUnlock() {
+    const match = CODES.find(c => c.code === buffer);
+    if (match) {
+      openReveal(match);
+    } else {
+      shakeError();
+    }
+  }
+
+  function addChar(ch) {
+    if (buffer.length >= MAX_LENGTH) return;
+    buffer += ch;
+    renderDisplay();
+  }
+
+  document.getElementById("keyboard").addEventListener("click", (e) => {
+    const btn = e.target.closest("button.key");
+    if (!btn || btn.dataset.char === undefined) return;
+    addChar(btn.dataset.char);
+  });
+
+  document.getElementById("clear").addEventListener("click", () => {
     buffer = "";
     renderDisplay();
-  }, 420);
-}
+  });
 
-function tryUnlock() {
-  const match = CODES.find(c => c.code === buffer);
-  if (match) {
-    openReveal(match);
-  } else {
-    shakeError();
+  document.getElementById("backspace").addEventListener("click", () => {
+    buffer = buffer.slice(0, -1);
+    renderDisplay();
+  });
+
+  document.getElementById("validate").addEventListener("click", tryUnlock);
+
+  document.addEventListener("keydown", (e) => {
+    if (overlay.classList.contains("show")) return;
+    const k = e.key.toUpperCase();
+    if (/^[A-Z0-9]$/.test(k)) addChar(k);
+    if (e.key === "-") addChar("-");
+    if (e.key === "Backspace") { buffer = buffer.slice(0, -1); renderDisplay(); }
+    if (e.key === "Enter") tryUnlock();
+  });
+
+  function openReveal(match) {
+    revealImage.src = match.image;
+    revealLabel.textContent = match.label || "Preuve confidentielle";
+    overlay.classList.add("show");
+
+    let remaining = REVEAL_DURATION;
+    timerProgress.style.strokeDashoffset = 0;
+
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      remaining -= 1;
+      const ratio = Math.max(remaining, 0) / REVEAL_DURATION;
+      timerProgress.style.strokeDashoffset = CIRC * (1 - ratio);
+      if (remaining <= 0) {
+        closeReveal();
+      }
+    }, 1000);
   }
-}
 
-function addChar(ch) {
-  if (buffer.length >= MAX_LENGTH) return;
-  buffer += ch;
+  function closeReveal() {
+    clearInterval(timerInterval);
+    overlay.classList.remove("show");
+    revealImage.src = "";
+    buffer = "";
+    renderDisplay();
+  }
+
   renderDisplay();
-}
-
-document.getElementById("keyboard").addEventListener("click", (e) => {
-  const btn = e.target.closest("button.key");
-  if (!btn || btn.dataset.char === undefined) return;
-  addChar(btn.dataset.char);
-});
-
-document.getElementById("clear").addEventListener("click", () => {
-  buffer = "";
-  renderDisplay();
-});
-
-document.getElementById("backspace").addEventListener("click", () => {
-  buffer = buffer.slice(0, -1);
-  renderDisplay();
-});
-
-document.getElementById("validate").addEventListener("click", tryUnlock);
-
-document.addEventListener("keydown", (e) => {
-  if (overlay.classList.contains("show")) return;
-  const k = e.key.toUpperCase();
-  if (/^[A-Z0-9]$/.test(k)) addChar(k);
-  if (e.key === "-") addChar("-");
-  if (e.key === "Backspace") { buffer = buffer.slice(0, -1); renderDisplay(); }
-  if (e.key === "Enter") tryUnlock();
-});
-
-function openReveal(match) {
-  revealImage.src = match.image;
-  revealLabel.textContent = match.label || "Preuve confidentielle";
-  overlay.classList.add("show");
-
-  let remaining = REVEAL_DURATION;
-  timerProgress.style.strokeDashoffset = 0;
-
-  clearInterval(timerInterval);
-  timerInterval = setInterval(() => {
-    remaining -= 1;
-    const ratio = Math.max(remaining, 0) / REVEAL_DURATION;
-    timerProgress.style.strokeDashoffset = CIRC * (1 - ratio);
-    if (remaining <= 0) {
-      closeReveal();
-    }
-  }, 1000);
-}
-
-function closeReveal() {
-  clearInterval(timerInterval);
-  overlay.classList.remove("show");
-  buffer = "";
-  renderDisplay();
-}
-
-renderDisplay();
+})();
 </script>
 </body>
 </html>
