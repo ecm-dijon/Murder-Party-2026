@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
 <title>Dossier confidentiel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -298,7 +299,7 @@
     CODES = [];
   }
 
-  const REVEAL_DURATION = 30; // secondes avant fermeture automatique
+  const REVEAL_DURATION = 20; // secondes avant fermeture automatique
   const MAX_LENGTH = Math.max(...CODES.map(c => c.code.length), 6) + 4;
 
   let buffer = "";
